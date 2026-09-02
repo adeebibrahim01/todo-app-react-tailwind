@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # To-Do Web App (React + Tailwind CSS)
 
 A modern, accessible to-do web application built with React (Hooks) and Tailwind CSS, following the project's Software Requirements Document (SRD).
@@ -65,3 +66,7 @@ src/
 ## License
 
 Proprietary — CyberFox
+=======
+# todo-app-react-tailwind
+A modern to-do web app built with React (Hooks) and Tailwind CSS. FR-01 (Quick Task Creation) implemented — persistent inline input, optimistic UI updates, and inline validation.
+>>>>>>> a243553d5a51ca072d8e25e50a463b5fd7fdb81c
