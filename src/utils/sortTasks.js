@@ -21,7 +21,7 @@ export function sortTasks(tasks, sortBy) {
         }
 
         if (sortBy === 'dueDate') {
-            // Tasks without due date last
+            // Tasks without due date last 
             if (!a.dueDate && !b.dueDate) return 0;
             if (!a.dueDate) return 1;
             if (!b.dueDate) return -1;
