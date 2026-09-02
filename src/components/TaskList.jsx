@@ -1,7 +1,27 @@
+import { useState, useCallback } from 'react';
 import { useTaskContext } from '../context/TaskContext';
+import TaskItem from './TaskItem';
+import Toast from './Toast';
 
 export default function TaskList() {
-    const { tasks } = useTaskContext();
+    const { tasks, toggleTask } = useTaskContext();
+    const [undoTask, setUndoTask] = useState(null);
+
+    const activeTasks = tasks.filter((t) => !t.completed);
+    const completedTasks = tasks.filter((t) => t.completed);
+
+    const handleComplete = useCallback((task) => {
+        setUndoTask(task);
+    }, []);
+
+    const handleUndo = () => {
+        if (undoTask) {
+            toggleTask(undoTask.id); // wapas incomplete state mein le jao
+            setUndoTask(null);
+        }
+    };
+
+    const handleDismiss = () => setUndoTask(null);
 
     if (tasks.length === 0) {
         return (
@@ -12,15 +32,38 @@ export default function TaskList() {
     }
 
     return (
-        <ul className="mt-4 flex flex-col gap-2">
-            {tasks.map((task) => (
-                <li
-                    key={task.id}
-                    className="rounded-lg border border-gray-100 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm"
-                >
-                    {task.title}
-                </li>
-            ))}
-        </ul>
+        <div className="mt-4">
+            {activeTasks.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                    {activeTasks.map((task) => (
+                        <TaskItem key={task.id} task={task} onComplete={handleComplete} />
+                    ))}
+                </ul>
+            )}
+
+            {completedTasks.length > 0 && (
+                <div className="mt-6">
+                    <div className="mb-2 flex items-center gap-2">
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                            Completed
+                        </span>
+                        <span className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <ul className="flex flex-col gap-2">
+                        {completedTasks.map((task) => (
+                            <TaskItem key={task.id} task={task} onComplete={handleComplete} />
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {undoTask && (
+                <Toast
+                    message={`"${undoTask.title}" marked as complete`}
+                    onUndo={handleUndo}
+                    onDismiss={handleDismiss}
+                />
+            )}
+        </div>
     );
 }
