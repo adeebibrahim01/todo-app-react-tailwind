@@ -7,22 +7,30 @@ import SectionHeader from './SectionHeader';
 import EmptyState from './EmptyState';
 import { sortTasks } from '../utils/sortTasks';
 import { groupTasks } from '../utils/groupTasks';
-
+import GlobalSearch from './GlobalSearch';
 export default function TaskList() {
-    const { tasks, tags, toggleTask, sortBy } = useTaskContext();
+    const { tasks, tags, toggleTask, sortBy, searchQuery,setSearchQuery,searchTasks,} = useTaskContext();
 
     const [undoTask, setUndoTask] = useState(null);
     const [activeTags, setActiveTags] = useState([]);
     // Active aur completed tasks separate
-    const filteredTasks =
-        activeTags.length > 0
-            ? tasks.filter((task) =>
-                activeTags.every((tag) => task.tags?.includes(tag))
-            )
-            : tasks;
+const searchFilteredTasks = searchQuery.trim()
+    ? searchTasks()
+    : tasks;
 
-    const activeTasks = filteredTasks.filter((task) => !task.completed);
-    const completedTasks = filteredTasks.filter((task) => task.completed);
+const filteredTasks =
+    activeTags.length > 0
+        ? searchFilteredTasks.filter((task) =>
+            activeTags.every((tag) => task.tags?.includes(tag))
+        )
+        : searchFilteredTasks;
+
+  const activeTasks = filteredTasks.filter(
+    (task) => !task.completed && task.parentId === null
+);
+const completedTasks = filteredTasks.filter(
+    (task) => task.completed && task.parentId === null
+);
     // Pehle sort
     const sortedActiveTasks = sortTasks(activeTasks, sortBy);
 
@@ -60,7 +68,9 @@ export default function TaskList() {
 
     return (
         <div className="mt-4">
-            {/* Global Tags */}
+            {/* Search */}
+        <GlobalSearch />
+            
             {/* Global Tags */}
             {tags.length > 0 && (
                 <div className="mb-6">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { useTaskContext } from '../context/TaskContext';
 import DatePicker from './DatePicker';
 import ReminderPicker from './ReminderPicker';
@@ -6,13 +7,214 @@ import PermissionPrompt from './PermissionPrompt';
 import ReminderBanner from './ReminderBanner';
 import PriorityDropdown from './PriorityDropdown';
 import { requestNotificationPermission } from '../utils/notifications';
+function SubtaskItem({ task, level }) {
+    const { tasks, toggleTask, addSubtask , setDependencies,} = useTaskContext();
 
+    const [subtaskInput, setSubtaskInput] = useState('');
+    const [showChildren, setShowChildren] = useState(true);
+
+    const children = tasks.filter(
+        (item) => item.parentId === task.id
+    );
+const completedChildren = children.filter(
+    (child) => child.completed
+).length;
+
+console.log(
+    'SUBTASK PROGRESS:',
+    task.title,
+    children.map((child) => ({
+        title: child.title,
+        completed: child.completed,
+    }))
+);
+const childProgress =
+    children.length > 0
+        ? Math.round(
+              (completedChildren / children.length) * 100
+          )
+        : 0;
+
+    const handleAddSubtask = () => {
+        const title = subtaskInput.trim();
+
+        if (!title) return;
+
+        addSubtask(task.id, title);
+        setSubtaskInput('');
+    };
+
+    return (
+        <div className="ml-4 border-l-2 border-indigo-100 pl-3">
+            <div className="flex items-center gap-2 rounded-md bg-gray-50 px-3 py-2">
+                {children.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setShowChildren((current) => !current)
+                        }
+                        className="text-gray-400 hover:text-indigo-600"
+                        aria-label={
+                            showChildren
+                                ? 'Hide nested subtasks'
+                                : 'Show nested subtasks'
+                        }
+                    >
+                        <span
+                            className={`inline-block transition-transform ${
+                                showChildren ? 'rotate-90' : ''
+                            }`}
+                        >
+                            ›
+                        </span>
+                    </button>
+                )}
+
+                <button
+                    type="button"
+                    onClick={() => toggleTask(task.id)}
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        task.completed
+                            ? 'border-indigo-600 bg-indigo-600'
+                            : 'border-gray-300 bg-white'
+                    }`}
+                    aria-label={
+                        task.completed
+                            ? 'Mark subtask as incomplete'
+                            : 'Mark subtask as complete'
+                    }
+                >
+                    {task.completed && (
+                        <span className="text-xs text-white">✓</span>
+                    )}
+                </button>
+
+                <span
+                    className={`text-xs ${
+                        task.completed
+                            ? 'text-gray-400 line-through'
+                            : 'text-gray-700'
+                    }`}
+                >
+                    {task.title}
+                </span>
+            </div>
+
+{children.length > 0 && (
+    <div className="mt-2 ml-6 w-full max-w-xs">
+        <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+                Subtasks
+            </span>
+
+            <span className="text-xs font-medium text-gray-600">
+                {childProgress}%
+            </span>
+        </div>
+
+        <div
+            className="h-2 w-full overflow-hidden rounded-full bg-gray-100"
+            role="progressbar"
+            aria-valuenow={childProgress}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label={`${childProgress}% of subtasks completed`}
+        >
+            <div
+                className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                style={{ width: `${childProgress}%` }}
+            />
+        </div>
+    </div>
+)}
+            {level < 2 && (
+                <div className="mt-2 flex items-center gap-2">
+                    <input
+                        type="text"
+                        value={subtaskInput}
+                        onChange={(e) =>
+                            setSubtaskInput(e.target.value)
+                        }
+                        placeholder="Add subtask"
+                        className="w-28 rounded-md border border-gray-200 px-2 py-1 text-xs outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                        aria-label={`Add subtask to ${task.title}`}
+                    />
+
+                    <button
+                        type="button"
+                        onClick={handleAddSubtask}
+                        className="rounded-md bg-indigo-50 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-100"
+                    >
+                        Add Subtask
+                    </button>
+                </div>
+                
+            )}
+            {/* Dependency Picker */}
+<div className="mt-2">
+    <label
+        htmlFor={`dependency-${task.id}`}
+        className="text-xs text-gray-500"
+    >
+        Depends on
+    </label>
+
+ <select
+    id={`dependency-${task.id}`}
+    className="mt-1 rounded-md border border-gray-200 px-2 py-1 text-xs outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+    value={task.dependencies?.[0] || ''}
+    onChange={(e) => {
+        const dependencyId = e.target.value;
+
+        setDependencies(
+            task.id,
+            dependencyId ? [dependencyId] : []
+        );
+    }}
+>
+        <option value="">Select a task</option>
+
+        {tasks
+            .filter((item) => item.id !== task.id)
+            .map((item) => (
+                <option key={item.id} value={item.id}>
+                    {item.title}
+                </option>
+            ))}
+    </select>
+</div>
+
+            {showChildren && children.length > 0 && (
+                <div className="mt-2 space-y-2">
+                    {children.map((child) => (
+                        <SubtaskItem
+                            key={child.id}
+                            task={child}
+                            level={level + 1}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 export default function TaskItem({ task, onComplete }) {
-    const { toggleTask, setTags, addTag, setRecurrence, setEditScope } = useTaskContext();
+  const {
+    tasks,
+    toggleTask,
+    setTags,
+    addTag,
+    setRecurrence,
+    setEditScope,
+    addSubtask,
+    
+} = useTaskContext();
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
     const [showReminderBanner, setShowReminderBanner] = useState(false);
     const [pendingReminder, setPendingReminder] = useState(null);
     const [tagInput, setTagInput] = useState('');
+    const [subtaskInput, setSubtaskInput] = useState('');
+    const [showSubtasks, setShowSubtasks] = useState(true);
     const [showEditScope, setShowEditScope] = useState(false);
     const [editScope, setSelectedEditScope] = useState('this');
     const handleAddTag = () => {
@@ -31,6 +233,15 @@ export default function TaskItem({ task, onComplete }) {
         addTag(newTag);
         setTagInput('');
     };
+
+    const handleAddSubtask = () => {
+    const title = subtaskInput.trim();
+
+    if (!title) return;
+
+    addSubtask(task.id, title);
+    setSubtaskInput('');
+};
     const handleTagKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -96,17 +307,63 @@ export default function TaskItem({ task, onComplete }) {
 
         setPendingReminder(null);
     };
-    const handleNotNow = () => {
-        setShowPermissionPrompt(false);
+  const handleNotNow = () => {
+    setShowPermissionPrompt(false);
 
-        if (pendingReminder) {
-            pendingReminder();
+    if (pendingReminder) {
+        pendingReminder();
+    }
+
+    setPendingReminder(null);
+    setShowReminderBanner(true);
+};
+
+const subtasks = tasks.filter(
+    (subtask) => subtask.parentId === task.id
+);
+const getTaskLevel = (taskId) => {
+    let level = 0;
+    let currentTask = tasks.find((item) => item.id === taskId);
+
+    while (currentTask?.parentId) {
+        level += 1;
+        currentTask = tasks.find(
+            (item) => item.id === currentTask.parentId
+        );
+
+        if (level >= 3) {
+            break;
         }
+    }
 
-        setPendingReminder(null);
-        setShowReminderBanner(true);
-    };
-    return (
+    return level;
+};
+
+const taskLevel = getTaskLevel(task.id);
+const getDescendants = (parentId) => {
+    const children = tasks.filter(
+        (item) => item.parentId === parentId
+    );
+
+    return children.flatMap((child) => [
+        child,
+        ...getDescendants(child.id),
+    ]);
+};
+
+const progressTasks = getDescendants(task.id);
+
+const completedSubtasks = progressTasks.filter(
+    (subtask) => subtask.completed
+).length;
+
+const subtaskProgress =
+    progressTasks.length > 0
+        ? Math.round(
+              (completedSubtasks / progressTasks.length) * 100
+          )
+        : 0;
+return (
         <li
             className={`flex items-center gap-3 rounded-lg border border-gray-100 bg-white px-4 py-3
         shadow-sm transition-opacity ${task.completed ? 'opacity-60' : 'opacity-100'}`}
@@ -142,7 +399,60 @@ export default function TaskItem({ task, onComplete }) {
                         {task.title}
                     </span>
 
+  {subtasks.length > 0 && (
+        <button
+            type="button"
+            onClick={() => setShowSubtasks((current) => !current)}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md
+            text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            aria-label={showSubtasks ? 'Hide subtasks' : 'Show subtasks'}
+            title={showSubtasks ? 'Hide subtasks' : 'Show subtasks'}
+        >
+         <svg
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    className={`h-4 w-4 transition-transform duration-200 ${
+        showSubtasks ? 'rotate-90' : ''
+    }`}
+    aria-hidden="true"
+>
+    <path
+        d="M7 5l5 5-5 5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    />
+</svg>
+        </button>
+    )}
+    {subtasks.length > 0 && (
+    <div className="mt-2 w-full max-w-xs">
+        <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+                Subtasks
+            </span>
 
+            <span className="text-xs font-medium text-gray-600">
+                {subtaskProgress}%
+            </span>
+        </div>
+
+        <div
+            className="h-2 w-full overflow-hidden rounded-full bg-gray-100"
+            role="progressbar"
+            aria-valuenow={subtaskProgress}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label={`${subtaskProgress}% of subtasks completed`}
+        >
+            <div
+                className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                style={{ width: `${subtaskProgress}%` }}
+            />
+        </div>
+    </div>
+)}
                     {task.recurrence && (
                         <span
                             className="inline-flex items-center gap-1 rounded-full bg-indigo-50
@@ -226,40 +536,40 @@ export default function TaskItem({ task, onComplete }) {
                             <option value="monthly">Monthly</option>
                             <option value="custom">Custom</option>
                         </select>
-                        {task.recurrence?.frequency === 'custom' && (
-                            <div className="mt-2 flex items-center gap-2">
-                                <label
-                                    htmlFor={`recurrence-interval-${task.id}`}
-                                    className="text-xs text-gray-500"
-                                >
-                                    Every
-                                </label>
+              {task.recurrence?.frequency === 'custom' && (
+    <div className="mt-2 flex items-center gap-2">
+        <label
+            htmlFor={`recurrence-interval-${task.id}`}
+            className="text-xs text-gray-500"
+        >
+            Every
+        </label>
 
-                                <input
-                                    id={`recurrence-interval-${task.id}`}
-                                    type="number"
-                                    min="1"
-                                    value={task.recurrence.interval || 1}
-                                    onChange={(e) => {
-                                        const interval = Math.max(
-                                            1,
-                                            Number(e.target.value)
-                                        );
+        <input
+            id={`recurrence-interval-${task.id}`}
+            type="number"
+            min="1"
+            value={task.recurrence.interval || 1}
+            onChange={(e) => {
+                const interval = Math.max(
+                    1,
+                    Number(e.target.value)
+                );
 
-                                        setRecurrence(task.id, {
-                                            ...task.recurrence,
-                                            interval,
-                                        });
-                                    }}
-                                    className="w-16 rounded-md border border-gray-200 px-2 py-1 text-xs
+                setRecurrence(task.id, {
+                    ...task.recurrence,
+                    interval,
+                });
+            }}
+            className="w-16 rounded-md border border-gray-200 px-2 py-1 text-xs
             outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
-                                />
+        />
 
-                                <span className="text-xs text-gray-500">
-                                    days
-                                </span>
-                            </div>
-                        )}
+        <span className="text-xs text-gray-500">
+            days
+        </span>
+    </div>
+)}
                         {task.recurrence && (
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <label
@@ -378,7 +688,39 @@ export default function TaskItem({ task, onComplete }) {
                             Add
                         </button>
                     </div>
+                    <div className="mt-2 flex items-center gap-2">
+    <input
+        type="text"
+        value={subtaskInput}
+        onChange={(e) => setSubtaskInput(e.target.value)}
+        placeholder="Add subtask"
+        className="w-28 rounded-md border border-gray-200 px-2 py-1 text-xs
+        outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+        aria-label={`Add subtask to ${task.title}`}
+    />
+
+    <button
+        type="button"
+        onClick={handleAddSubtask}
+        className="rounded-md bg-indigo-50 px-2 py-1 text-xs
+        text-indigo-600 hover:bg-indigo-100"
+    >
+        Add Subtask
+    </button>
+</div>
+
                 </div>
+{subtasks.length > 0 && showSubtasks && (
+    <div className="mt-3 ml-6 space-y-2">
+        {subtasks.map((subtask) => (
+            <SubtaskItem
+                key={subtask.id}
+                task={subtask}
+                level={1}
+            />
+        ))}
+    </div>
+)}
 
                 {showPermissionPrompt && (
                     <PermissionPrompt

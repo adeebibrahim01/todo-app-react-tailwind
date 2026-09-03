@@ -4,14 +4,18 @@ import {
     useReducer,
     useCallback,
     useEffect,
+    useState,
 } from 'react';
+import { fuzzyMatch } from '../utils/fuzzySearch';
 
 const TaskContext = createContext(null);
 
 const initialState = {
-    tasks: JSON.parse(localStorage.getItem('tasks') || '[]'),
-
-
+tasks: JSON.parse(localStorage.getItem('tasks') || '[]').map((task) => ({
+        ...task,
+        parentId: task.parentId ?? null,
+        dependencies: task.dependencies ?? [],
+    })),
     // FR-05
     tags: JSON.parse(localStorage.getItem('taskTags') || '[]'),
 
@@ -262,6 +266,19 @@ function taskReducer(state, action) {
                 ),
             };
 
+            case 'SET_DEPENDENCIES':
+    return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+            task.id === action.payload.taskId
+                ? {
+                      ...task,
+                      dependencies: action.payload.dependencies,
+                  }
+                : task
+        ),
+    };
+
         case 'SET_EDIT_SCOPE':
             return {
                 ...state,
@@ -292,32 +309,63 @@ function taskReducer(state, action) {
 
 export function TaskProvider({ children }) {
     const [state, dispatch] = useReducer(taskReducer, initialState);
+const [searchQuery, setSearchQuery] = useState('');
+const [includeCompleted, setIncludeCompleted] = useState(false);
+const [includeArchived, setIncludeArchived] = useState(false);
+const addTask = useCallback((title) => {
+    const newTask = {
+        id: crypto.randomUUID(),
+        title,
+        createdAt: new Date().toISOString(),
+        completed: false,
+        archived: false,
+        parentId: null,
+        dependencies: [],
 
-    const addTask = useCallback((title) => {
-        const newTask = {
-            id: crypto.randomUUID(),
-            title,
-            createdAt: new Date().toISOString(),
-            completed: false,
+        // FR-04
+        dueDate: null,
+        reminderAt: null,
 
-            // FR-04
-            dueDate: null,
-            reminderAt: null,
+        // FR-05
+        priority: null,
+        tags: [],
 
-            // FR-05
-            priority: null,
-            tags: [],
+        // FR-06
+        recurrence: null,
+    };
 
+    dispatch({
+        type: 'ADD_TASK',
+        payload: newTask,
+    });
+}, []);
+ const addSubtask = useCallback((parentId, title) => {
+    const newSubtask = {
+        id: crypto.randomUUID(),
+        title,
+        createdAt: new Date().toISOString(),
+        completed: false,
+        archived: false,
+        parentId,
+        dependencies: [],
 
-            // FR-06
-            recurrence: null,
-        };
+        // FR-04
+        dueDate: null,
+        reminderAt: null,
 
-        dispatch({
-            type: 'ADD_TASK',
-            payload: newTask,
-        });
-    }, []);
+        // FR-05
+        priority: null,
+        tags: [],
+
+        // FR-06
+        recurrence: null,
+    };
+
+    dispatch({
+        type: 'ADD_TASK',
+        payload: newSubtask,
+    });
+}, []);
 
     const toggleTask = useCallback((id) => {
         dispatch({
@@ -379,6 +427,15 @@ export function TaskProvider({ children }) {
             },
         });
     }, []);
+    const setDependencies = useCallback((taskId, dependencies) => {
+    dispatch({
+        type: 'SET_DEPENDENCIES',
+        payload: {
+            taskId,
+            dependencies,
+        },
+    });
+}, []);
     const setEditScope = useCallback((id, scope) => {
         dispatch({
             type: 'SET_EDIT_SCOPE',
@@ -388,6 +445,24 @@ export function TaskProvider({ children }) {
             },
         });
     }, []);
+    const searchTasks = useCallback(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+        return state.tasks;
+    }
+return state.tasks.filter((task) => {
+    if (!includeCompleted && task.completed) {
+        return false;
+    }
+if (!includeArchived && task.archived) {
+    return false;
+}
+
+    return fuzzyMatch(task.title, query);
+});
+
+}, [searchQuery, state.tasks, includeCompleted, includeArchived]);
 
 
     const addTag = useCallback((tag) => {
@@ -415,6 +490,7 @@ export function TaskProvider({ children }) {
                 ...state,
                 addTask,
                 toggleTask,
+                addSubtask,
                 setSortBy,
                 setDueDate,
                 setReminder,
@@ -423,6 +499,14 @@ export function TaskProvider({ children }) {
                 addTag,
                 setRecurrence,
                 setEditScope,
+                searchQuery,
+                setSearchQuery,
+                searchTasks,
+                includeCompleted,
+                setIncludeCompleted,
+                includeArchived,
+                setIncludeArchived,
+                setDependencies,
             }}
         >
             {children}
