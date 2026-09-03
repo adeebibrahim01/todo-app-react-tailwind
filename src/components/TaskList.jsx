@@ -9,14 +9,20 @@ import { sortTasks } from '../utils/sortTasks';
 import { groupTasks } from '../utils/groupTasks';
 
 export default function TaskList() {
-    const { tasks, toggleTask, sortBy } = useTaskContext();
+    const { tasks, tags, toggleTask, sortBy } = useTaskContext();
 
     const [undoTask, setUndoTask] = useState(null);
-
+    const [activeTags, setActiveTags] = useState([]);
     // Active aur completed tasks separate
-    const activeTasks = tasks.filter((task) => !task.completed);
-    const completedTasks = tasks.filter((task) => task.completed);
+    const filteredTasks =
+        activeTags.length > 0
+            ? tasks.filter((task) =>
+                activeTags.every((tag) => task.tags?.includes(tag))
+            )
+            : tasks;
 
+    const activeTasks = filteredTasks.filter((task) => !task.completed);
+    const completedTasks = filteredTasks.filter((task) => task.completed);
     // Pehle sort
     const sortedActiveTasks = sortTasks(activeTasks, sortBy);
 
@@ -54,6 +60,38 @@ export default function TaskList() {
 
     return (
         <div className="mt-4">
+            {/* Global Tags */}
+            {/* Global Tags */}
+            {tags.length > 0 && (
+                <div className="mb-6">
+                    <h3 className="mb-2 text-sm font-medium text-gray-700">
+                        Tags
+                    </h3>
+
+                    <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                            <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                    setActiveTags((currentTags) =>
+                                        currentTags.includes(tag)
+                                            ? currentTags.filter((currentTag) => currentTag !== tag)
+                                            : [...currentTags, tag]
+                                    );
+                                }}
+                                className={`rounded-full px-3 py-1 text-xs transition-colors ${activeTags.includes(tag)
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
+                            >
+                                #{tag}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Sort Dropdown */}
             <div className="mb-6 flex justify-end">
                 <SortDropdown />
