@@ -39,6 +39,24 @@ function taskReducer(state, action) {
 
             const willComplete = !task.completed;
 
+
+            // FR-08: Dependency validation
+if (willComplete && task.dependencies?.length > 0) {
+    const hasIncompleteDependency = task.dependencies.some(
+        (dependencyId) => {
+            const dependency = state.tasks.find(
+                (t) => t.id === dependencyId
+            );
+
+            return dependency && !dependency.completed;
+        }
+    );
+
+    if (hasIncompleteDependency) {
+        return state;
+    }
+}
+
             // Normal task ya completed task ko uncomplete karna
             if (!willComplete || !task.recurrence) {
                 return {

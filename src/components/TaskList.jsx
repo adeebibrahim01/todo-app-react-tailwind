@@ -12,6 +12,7 @@ export default function TaskList() {
     const { tasks, tags, toggleTask, sortBy, searchQuery,setSearchQuery,searchTasks,} = useTaskContext();
 
     const [undoTask, setUndoTask] = useState(null);
+    const [dependencyWarning, setDependencyWarning] = useState(null);
     const [activeTags, setActiveTags] = useState([]);
     // Active aur completed tasks separate
 const searchFilteredTasks = searchQuery.trim()
@@ -45,6 +46,11 @@ const completedTasks = filteredTasks.filter(
     const handleComplete = useCallback((task) => {
         setUndoTask(task);
     }, []);
+    const handleDependencyBlocked = useCallback((task) => {
+    setDependencyWarning(
+        `"${task.title}" cannot be completed because a dependency is incomplete.`
+    );
+}, []);
 
     const handleUndo = () => {
         if (undoTask) {
@@ -118,6 +124,7 @@ const completedTasks = filteredTasks.filter(
                                 key={task.id}
                                 task={task}
                                 onComplete={handleComplete}
+                                onDependencyBlocked={handleDependencyBlocked}
                             />
                         ))}
                     </ul>
@@ -135,6 +142,7 @@ const completedTasks = filteredTasks.filter(
                                 key={task.id}
                                 task={task}
                                 onComplete={handleComplete}
+                                onDependencyBlocked={handleDependencyBlocked}
                             />
                         ))}
                     </ul>
@@ -152,6 +160,7 @@ const completedTasks = filteredTasks.filter(
                                 key={task.id}
                                 task={task}
                                 onComplete={handleComplete}
+                                onDependencyBlocked={handleDependencyBlocked}
                             />
                         ))}
                     </ul>
@@ -186,6 +195,7 @@ const completedTasks = filteredTasks.filter(
                                 key={task.id}
                                 task={task}
                                 onComplete={handleComplete}
+                                onDependencyBlocked={handleDependencyBlocked}
                             />
                         ))}
                     </ul>

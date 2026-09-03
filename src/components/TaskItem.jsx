@@ -207,6 +207,8 @@ export default function TaskItem({ task, onComplete }) {
     setRecurrence,
     setEditScope,
     addSubtask,
+    setDependencies,
+    onDependencyBlocked,
     
 } = useTaskContext();
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
@@ -248,16 +250,36 @@ export default function TaskItem({ task, onComplete }) {
             handleAddTag();
         }
     };
-    const handleToggle = () => {
-        console.log('TOGGLE CLICK:', task.id);
-        const wasCompleted = task.completed;
-        toggleTask(task.id);
+const handleToggle = () => {
+    console.log('TOGGLE CLICK:', task.id);
 
-        // sirf complete karte waqt undo toast dikhao (uncomplete karte waqt nahi)
-        if (!wasCompleted) {
-            onComplete(task);
+    const wasCompleted = task.completed;
+
+    // Dependency validation
+    if (!wasCompleted && task.dependencies?.length > 0) {
+        const hasIncompleteDependency = task.dependencies.some(
+            (dependencyId) => {
+                const dependency = tasks.find(
+                    (item) => item.id === dependencyId
+                );
+
+                return dependency && !dependency.completed;
+            }
+        );
+
+        if (hasIncompleteDependency) {
+            onDependencyBlocked(task);
+            return;
         }
-    };
+    }
+
+    toggleTask(task.id);
+
+    // sirf complete karte waqt undo toast dikhao
+    if (!wasCompleted) {
+        onComplete(task);
+    }
+};
 
     const handleKeyDown = (e) => {
         // Tab se focus already native behavior hai; Space se toggle explicitly handle karo
@@ -707,6 +729,40 @@ return (
     >
         Add Subtask
     </button>
+</div>
+
+{/* Dependency Picker */}
+<div className="mt-2">
+    <label
+        htmlFor={`dependency-${task.id}`}
+        className="text-xs text-gray-500"
+    >
+        Depends on
+    </label>
+
+    <select
+        id={`dependency-${task.id}`}
+        className="mt-1 rounded-md border border-gray-200 px-2 py-1 text-xs outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+        value={task.dependencies?.[0] || ''}
+        onChange={(e) => {
+            const dependencyId = e.target.value;
+
+            setDependencies(
+                task.id,
+                dependencyId ? [dependencyId] : []
+            );
+        }}
+    >
+        <option value="">Select a task</option>
+
+        {tasks
+            .filter((item) => item.id !== task.id)
+            .map((item) => (
+                <option key={item.id} value={item.id}>
+                    {item.title}
+                </option>
+            ))}
+    </select>
 </div>
 
                 </div>
